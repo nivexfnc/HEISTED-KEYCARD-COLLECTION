@@ -329,26 +329,15 @@
     <input type="file" id="importFile" style="display: none;" accept=".json">
 
     <script>
-        const keycards = [
-            'Ghost',
-            'Shadow',
-            'Boom',
-            'Kitty',
-            'Commander',
-            'Eclipsed',
-            'Thunker',
-            'MYSTERY',
-            'Shark',
-            'Security'
-        ];
-        
+        const keycards = ['Ghost', 'Shadow', 'Boom', 'Kitty', 'Commander', 'Eclipsed', 'Thunker', 'MYSTERY', 'Shark', 'Security'];
         const variants = ['Base', 'Shiny', 'Rainbow', 'Iridescent'];
         
-        function initTracker() {
-            loadData();
+        // Initialize immediately
+        document.addEventListener('DOMContentLoaded', function() {
             renderKeycards();
             updateStats();
-        }
+            attachEventListeners();
+        });
         
         function renderKeycards() {
             const grid = document.getElementById('keycardGrid');
@@ -358,21 +347,22 @@
                 const card = document.createElement('div');
                 card.className = 'keycard-card';
                 
-                const variantsHtml = variants.map(variant => {
+                let variantsHtml = '';
+                variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
-                    const isChecked = getData(id) ? 'checked' : '';
-                    return `
+                    const isChecked = localStorage.getItem(id) === 'true';
+                    variantsHtml += `
                         <div class="variant-checkbox">
                             <input 
                                 type="checkbox" 
                                 id="${id}" 
-                                ${isChecked}
-                                onchange="updateTracker()"
+                                ${isChecked ? 'checked' : ''}
+                                onchange="handleChange()"
                             >
                             <label for="${id}">${variant}</label>
                         </div>
                     `;
-                }).join('');
+                });
                 
                 card.innerHTML = `
                     <div class="keycard-name">${keycard}</div>
@@ -383,16 +373,13 @@
             });
         }
         
-        function updateTracker() {
-            saveData();
-            updateStats();
-        }
-        
         function updateStats() {
             let collected = 0;
+            
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
-                    if (getData(`${keycard}-${variant}`)) {
+                    const id = `${keycard}-${variant}`;
+                    if (localStorage.getItem(id) === 'true') {
                         collected++;
                     }
                 });
@@ -406,33 +393,57 @@
             document.getElementById('progressPercent').textContent = percent + '%';
         }
         
+        function handleChange() {
+            // Save all checkbox states
+            keycards.forEach(keycard => {
+                variants.forEach(variant => {
+                    const id = `${keycard}-${variant}`;
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        localStorage.setItem(id, checkbox.checked ? 'true' : 'false');
+                    }
+                });
+            });
+            updateStats();
+        }
+        
         function selectAll() {
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
-                    document.getElementById(id).checked = true;
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        localStorage.setItem(id, 'true');
+                    }
                 });
             });
-            updateTracker();
+            updateStats();
         }
         
         function deselectAll() {
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
-                    document.getElementById(id).checked = false;
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        localStorage.setItem(id, 'false');
+                    }
                 });
             });
-            updateTracker();
+            updateStats();
         }
         
         function shareToDiscord() {
             let shareText = '```\n📖 Era 2 Season 5: HEISTED Codex 📖\n\n';
             
             keycards.forEach(keycard => {
-                const hasVariants = variants.filter(v => getData(`${keycard}-${v}`)).length;
                 const variants_str = variants
-                    .map(v => getData(`${keycard}-${v}`) ? `✅ ${v}` : `❌ ${v}`)
+                    .map(v => {
+                        const id = `${keycard}-${v}`;
+                        return localStorage.getItem(id) === 'true' ? `✅ ${v}` : `❌ ${v}`;
+                    })
                     .join(' | ');
                 shareText += `${keycard}: ${variants_str}\n`;
             });
@@ -441,7 +452,7 @@
             const total = document.getElementById('totalCount').textContent;
             const percent = document.getElementById('progressPercent').textContent;
             
-            shareText += `\nProgress: ${collected}/${total} (${percent})\n````;
+            shareText += `\nProgress: ${collected}/${total} (${percent})\n\`\`\``;
             
             document.getElementById('shareText').textContent = shareText;
             document.getElementById('shareModal').style.display = 'block';
@@ -463,7 +474,7 @@
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
-                    data[id] = getData(id) || false;
+                    data[id] = localStorage.getItem(id) === 'true';
                 });
             });
             
@@ -489,12 +500,10 @@
                 try {
                     const data = JSON.parse(event.target.result);
                     Object.keys(data).forEach(key => {
-                        if (data[key]) {
-                            setData(key, true);
-                        }
+                        localStorage.setItem(key, data[key] ? 'true' : 'false');
                     });
                     renderKeycards();
-                    updateTracker();
+                    updateStats();
                     alert('✓ Data imported successfully!');
                 } catch (err) {
                     alert('✗ Error importing file: ' + err.message);
@@ -503,46 +512,12 @@
             reader.readAsText(file);
         });
         
-        // LocalStorage helpers
-        function getData(key) {
-            return localStorage.getItem(`keycard_${key}`) === 'true';
-        }
-        
-        function setData(key, value) {
-            localStorage.setItem(`keycard_${key}`, value ? 'true' : 'false');
-        }
-        
-        function saveData() {
-            keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
-                    const isChecked = document.getElementById(id).checked;
-                    setData(id, isChecked);
-                });
-            });
-        }
-        
-        function loadData() {
-            keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
-                    const checkbox = document.getElementById(id);
-                    if (checkbox && getData(id)) {
-                        checkbox.checked = true;
-                    }
-                });
-            });
-        }
-        
         window.onclick = function(event) {
             const modal = document.getElementById('shareModal');
             if (event.target === modal) {
                 modal.style.display = 'none';
             }
         }
-        
-        // Initialize on load
-        window.addEventListener('DOMContentLoaded', initTracker);
     </script>
 </body>
 </html>
