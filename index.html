@@ -437,15 +437,17 @@
         
         function shareToDiscord() {
             let shareText = '```\n📖 Era 2 Season 5: HEISTED Codex 📖\n\n';
+            shareText += 'BASE | SHINY | RAINBOW | IRIDESCENT\n';
+            shareText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
             
             keycards.forEach(keycard => {
-                const variants_str = variants
+                const status = variants
                     .map(v => {
                         const id = `${keycard}-${v}`;
-                        return localStorage.getItem(id) === 'true' ? `✅ ${v}` : `❌ ${v}`;
+                        return localStorage.getItem(id) === 'true' ? '✅' : '❌';
                     })
                     .join(' | ');
-                shareText += `${keycard}: ${variants_str}\n`;
+                shareText += `${keycard}: ${status}\n`;
             });
             
             const collected = document.getElementById('collectedCount').textContent;
