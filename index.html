@@ -427,21 +427,21 @@
         }
         
         function shareToDiscord() {
-            let shareText = '📖 **Era 2 Season 5: HEISTED Codex** 📖\n\n';
+            let shareText = '```\n📖 Era 2 Season 5: HEISTED Codex 📖\n\n';
             
             keycards.forEach(keycard => {
                 const hasVariants = variants.filter(v => getData(`${keycard}-${v}`)).length;
                 const variants_str = variants
                     .map(v => getData(`${keycard}-${v}`) ? `✅ ${v}` : `❌ ${v}`)
                     .join(' | ');
-                shareText += `**${keycard}**: ${variants_str}\n`;
+                shareText += `${keycard}: ${variants_str}\n`;
             });
             
             const collected = document.getElementById('collectedCount').textContent;
             const total = document.getElementById('totalCount').textContent;
             const percent = document.getElementById('progressPercent').textContent;
             
-            shareText += `\n**Progress**: ${collected}/${total} (${percent})`;
+            shareText += `\nProgress: ${collected}/${total} (${percent})\n````;
             
             document.getElementById('shareText').textContent = shareText;
             document.getElementById('shareModal').style.display = 'block';
