@@ -126,6 +126,11 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
         }
         
+        .keycard-card.unavailable {
+            opacity: 0.6;
+            background: #f0f0f0;
+        }
+        
         .keycard-name {
             font-size: 1.3em;
             font-weight: bold;
@@ -133,6 +138,16 @@
             margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+        
+        .unavailable-badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 8px;
         }
         
         .variants {
@@ -170,12 +185,21 @@
             font-weight: bold;
         }
         
+        .variant-checkbox input[type="checkbox"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
         .variant-checkbox label {
             cursor: pointer;
             margin: 0;
             flex: 1;
             color: #555;
             font-size: 0.95em;
+        }
+        
+        .variant-checkbox input[type="checkbox"]:disabled + label {
+            cursor: not-allowed;
         }
         
         .modal {
@@ -287,21 +311,25 @@
 </head>
 <body>
     <div class="container">
-        <h1>📖 Era 2 Season 5: HEISTED Codex</h1>
+        <h1>Era 2 Season 5: HEISTED Codex</h1>
         <p class="subtitle">Track your keycard collection and share your progress</p>
         
         <div class="stats">
             <div class="stat-box">
-                <div class="stat-number" id="collectedCount">0</div>
-                <div class="stat-label">Collected</div>
+                <div class="stat-number" id="currentCollected">0</div>
+                <div class="stat-label">Current Progress</div>
             </div>
             <div class="stat-box">
-                <div class="stat-number" id="totalCount">0</div>
-                <div class="stat-label">Total Available</div>
+                <div class="stat-number" id="currentPercent">0%</div>
+                <div class="stat-label">Current %</div>
             </div>
             <div class="stat-box">
-                <div class="stat-number" id="progressPercent">0%</div>
-                <div class="stat-label">Completion</div>
+                <div class="stat-number" id="overallCollected">0</div>
+                <div class="stat-label">Overall Progress</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="overallPercent">0%</div>
+                <div class="stat-label">Overall %</div>
             </div>
         </div>
         
@@ -332,12 +360,29 @@
         const keycards = ['Ghost', 'Shadow', 'Boom', 'Kitty', 'Commander', 'Eclipsed', 'Thunker', 'MYSTERY', 'Shark', 'Security'];
         const variants = ['Base', 'Shiny', 'Rainbow', 'Iridescent'];
         
+        // Only Base variants are available now (except MYSTERY which has none yet)
+        const availableKeycards = {
+            'Ghost': ['Base'],
+            'Shadow': ['Base'],
+            'Boom': ['Base'],
+            'Kitty': ['Base'],
+            'Commander': ['Base'],
+            'Eclipsed': ['Base'],
+            'Thunker': ['Base'],
+            'MYSTERY': [],
+            'Shark': ['Base'],
+            'Security': ['Base']
+        };
+        
         // Initialize immediately
         document.addEventListener('DOMContentLoaded', function() {
             renderKeycards();
             updateStats();
-            attachEventListeners();
         });
+        
+        function isAvailable(keycard, variant) {
+            return availableKeycards[keycard] && availableKeycards[keycard].includes(variant);
+        }
         
         function renderKeycards() {
             const grid = document.getElementById('keycardGrid');
@@ -347,16 +392,24 @@
                 const card = document.createElement('div');
                 card.className = 'keycard-card';
                 
+                const hasAvailable = availableKeycards[keycard] && availableKeycards[keycard].length > 0;
+                if (!hasAvailable) {
+                    card.classList.add('unavailable');
+                }
+                
                 let variantsHtml = '';
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
+                    const available = isAvailable(keycard, variant);
                     const isChecked = localStorage.getItem(id) === 'true';
+                    
                     variantsHtml += `
                         <div class="variant-checkbox">
                             <input 
                                 type="checkbox" 
                                 id="${id}" 
                                 ${isChecked ? 'checked' : ''}
+                                ${!available ? 'disabled' : ''}
                                 onchange="handleChange()"
                             >
                             <label for="${id}">${variant}</label>
@@ -364,8 +417,9 @@
                     `;
                 });
                 
+                const unavailableBadge = !hasAvailable ? '<span class="unavailable-badge">Coming Soon</span>' : '';
                 card.innerHTML = `
-                    <div class="keycard-name">${keycard}</div>
+                    <div class="keycard-name">${keycard}${unavailableBadge}</div>
                     <div class="variants">${variantsHtml}</div>
                 `;
                 
@@ -374,32 +428,42 @@
         }
         
         function updateStats() {
-            let collected = 0;
+            let currentCollected = 0;
+            let overallCollected = 0;
+            let currentTotal = 0;
+            let overallTotal = 0;
             
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
-                    if (localStorage.getItem(id) === 'true') {
-                        collected++;
+                    const available = isAvailable(keycard, variant);
+                    const isChecked = localStorage.getItem(id) === 'true';
+                    
+                    if (available) {
+                        currentTotal++;
+                        if (isChecked) currentCollected++;
                     }
+                    
+                    overallTotal++;
+                    if (isChecked) overallCollected++;
                 });
             });
             
-            const total = keycards.length * variants.length;
-            const percent = Math.round((collected / total) * 100);
+            const currentPercent = currentTotal > 0 ? Math.round((currentCollected / currentTotal) * 100) : 0;
+            const overallPercent = overallTotal > 0 ? Math.round((overallCollected / overallTotal) * 100) : 0;
             
-            document.getElementById('collectedCount').textContent = collected;
-            document.getElementById('totalCount').textContent = total;
-            document.getElementById('progressPercent').textContent = percent + '%';
+            document.getElementById('currentCollected').textContent = `${currentCollected}/${currentTotal}`;
+            document.getElementById('currentPercent').textContent = currentPercent + '%';
+            document.getElementById('overallCollected').textContent = `${overallCollected}/${overallTotal}`;
+            document.getElementById('overallPercent').textContent = overallPercent + '%';
         }
         
         function handleChange() {
-            // Save all checkbox states
             keycards.forEach(keycard => {
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox) {
+                    if (checkbox && !checkbox.disabled) {
                         localStorage.setItem(id, checkbox.checked ? 'true' : 'false');
                     }
                 });
@@ -412,7 +476,7 @@
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox) {
+                    if (checkbox && !checkbox.disabled) {
                         checkbox.checked = true;
                         localStorage.setItem(id, 'true');
                     }
@@ -426,7 +490,7 @@
                 variants.forEach(variant => {
                     const id = `${keycard}-${variant}`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox) {
+                    if (checkbox && !checkbox.disabled) {
                         checkbox.checked = false;
                         localStorage.setItem(id, 'false');
                     }
@@ -436,7 +500,7 @@
         }
         
         function shareToDiscord() {
-            let shareText = '```\n📖 Era 2 Season 5: HEISTED Codex 📖\n\n';
+            let shareText = '```\nEra 2 Season 5: HEISTED Codex\n\n';
             shareText += 'BASE | SHINY | RAINBOW | IRIDESCENT\n';
             shareText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
             
@@ -444,17 +508,21 @@
                 const status = variants
                     .map(v => {
                         const id = `${keycard}-${v}`;
+                        const available = isAvailable(keycard, v);
+                        if (!available) return '🚫';
                         return localStorage.getItem(id) === 'true' ? '✅' : '❌';
                     })
                     .join(' | ');
                 shareText += `${keycard}: ${status}\n`;
             });
             
-            const collected = document.getElementById('collectedCount').textContent;
-            const total = document.getElementById('totalCount').textContent;
-            const percent = document.getElementById('progressPercent').textContent;
+            const currentCollected = document.getElementById('currentCollected').textContent;
+            const currentPercent = document.getElementById('currentPercent').textContent;
+            const overallCollected = document.getElementById('overallCollected').textContent;
+            const overallPercent = document.getElementById('overallPercent').textContent;
             
-            shareText += `\nProgress: ${collected}/${total} (${percent})\n\`\`\``;
+            shareText += `\nCurrent Progress: ${currentCollected} (${currentPercent})\n`;
+            shareText += `Overall Progress: ${overallCollected} (${overallPercent})\n\`\`\``;
             
             document.getElementById('shareText').textContent = shareText;
             document.getElementById('shareModal').style.display = 'block';
