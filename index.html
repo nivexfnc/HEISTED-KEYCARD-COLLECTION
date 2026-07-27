@@ -432,7 +432,7 @@
             keycards.forEach(keycard => {
                 const hasVariants = variants.filter(v => getData(`${keycard}-${v}`)).length;
                 const variants_str = variants
-                    .map(v => getData(`${keycard}-${v}`) ? `✓ ${v}` : `✗ ${v}`)
+                    .map(v => getData(`${keycard}-${v}`) ? `✅ ${v}` : `❌ ${v}`)
                     .join(' | ');
                 shareText += `**${keycard}**: ${variants_str}\n`;
             });
