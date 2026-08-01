@@ -336,7 +336,8 @@
         <div class="controls">
             <button class="btn-primary" onclick="selectAll()">✓ Select All</button>
             <button class="btn-secondary" onclick="deselectAll()">✗ Deselect All</button>
-            <button class="btn-primary" onclick="shareToDiscord()">📤 Share to Discord</button>
+            <button class="btn-primary" onclick="shareToDiscord()">💬 Share to Discord</button>
+            <button class="btn-primary" onclick="shareToTwitter()">𝕏 Share to X</button>
             <button class="btn-secondary" onclick="exportData()">⬇️ Export Data</button>
             <button class="btn-secondary" onclick="importData()">⬆️ Import Data</button>
         </div>
@@ -357,21 +358,21 @@
     <input type="file" id="importFile" style="display: none;" accept=".json">
 
     <script>
-        const keycards = ['Ghost', 'Shadow', 'Boom', 'Kitty', 'Commander', 'Eclipsed', 'Thunker', 'MYSTERY', 'Shark', 'Security'];
+        const keycards = ['Ghost', 'Shadow', 'Boom', 'Kitty', 'Commander', 'Eclipsed', 'Thunker', 'OG-Keycard', 'Shark', 'Security'];
         const variants = ['Base', 'Shiny', 'Rainbow', 'Iridescent'];
         
-        // Only Base variants are available now (except MYSTERY which has none yet)
+        // Base and Shiny variants are available (OG-Keycard only has Base)
         const availableKeycards = {
-            'Ghost': ['Base'],
-            'Shadow': ['Base'],
-            'Boom': ['Base'],
-            'Kitty': ['Base'],
-            'Commander': ['Base'],
-            'Eclipsed': ['Base'],
-            'Thunker': ['Base'],
-            'MYSTERY': [],
-            'Shark': ['Base'],
-            'Security': ['Base']
+            'Ghost': ['Base', 'Shiny'],
+            'Shadow': ['Base', 'Shiny'],
+            'Boom': ['Base', 'Shiny'],
+            'Kitty': ['Base', 'Shiny'],
+            'Commander': ['Base', 'Shiny'],
+            'Eclipsed': ['Base', 'Shiny'],
+            'Thunker': ['Base', 'Shiny'],
+            'OG-Keycard': ['Base'],
+            'Shark': ['Base', 'Shiny'],
+            'Security': ['Base', 'Shiny']
         };
         
         // Initialize immediately
@@ -499,10 +500,10 @@
             updateStats();
         }
         
-        function shareToDiscord() {
-            let shareText = '```\nEra 2 Season 5: HEISTED Codex\n\n';
-            shareText += 'BASE | SHINY | RAINBOW | IRIDESCENT\n';
-            shareText += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        function generateMessage() {
+            let message = 'Era 2 Season 5: HEISTED Codex\n\n';
+            message += 'BASE | SHINY | RAINBOW | IRIDESCENT\n';
+            message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
             
             keycards.forEach(keycard => {
                 const status = variants
@@ -513,7 +514,7 @@
                         return localStorage.getItem(id) === 'true' ? '✅' : '❌';
                     })
                     .join(' | ');
-                shareText += `${keycard}: ${status}\n`;
+                message += `${keycard}: ${status}\n`;
             });
             
             const currentCollected = document.getElementById('currentCollected').textContent;
@@ -521,11 +522,24 @@
             const overallCollected = document.getElementById('overallCollected').textContent;
             const overallPercent = document.getElementById('overallPercent').textContent;
             
-            shareText += `\nCurrent Progress: ${currentCollected} (${currentPercent})\n`;
-            shareText += `Overall Progress: ${overallCollected} (${overallPercent})\n\`\`\``;
+            message += `\nCurrent Progress: ${currentCollected} (${currentPercent})\n`;
+            message += `Overall Progress: ${overallCollected} (${overallPercent})`;
             
-            document.getElementById('shareText').textContent = shareText;
+            return message;
+        }
+        
+        function shareToDiscord() {
+            const message = generateMessage();
+            const discordMessage = '```\n' + message + '\n```';
+            
+            document.getElementById('shareText').textContent = discordMessage;
             document.getElementById('shareModal').style.display = 'block';
+        }
+        
+        function shareToTwitter() {
+            const message = generateMessage();
+            const twitterUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(message);
+            window.open(twitterUrl, '_blank');
         }
         
         function closeModal() {
