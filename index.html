@@ -13,7 +13,7 @@
         
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #00CED1 0%, #1a1a1a 50%, #DC143C 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -399,24 +399,43 @@
                 }
                 
                 let variantsHtml = '';
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
-                    const available = isAvailable(keycard, variant);
+                
+                // For OG-Ceycard, only show Base without variant checkbox styling
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
                     const isChecked = localStorage.getItem(id) === 'true';
-                    
-                    variantsHtml += `
+                    variantsHtml = `
                         <div class="variant-checkbox">
                             <input 
                                 type="checkbox" 
                                 id="${id}" 
                                 ${isChecked ? 'checked' : ''}
-                                ${!available ? 'disabled' : ''}
                                 onchange="handleChange()"
                             >
-                            <label for="${id}">${variant}</label>
+                            <label for="${id}">Base</label>
                         </div>
                     `;
-                });
+                } else {
+                    // For other keycards, show all variants
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        const available = isAvailable(keycard, variant);
+                        const isChecked = localStorage.getItem(id) === 'true';
+                        
+                        variantsHtml += `
+                            <div class="variant-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    id="${id}" 
+                                    ${isChecked ? 'checked' : ''}
+                                    ${!available ? 'disabled' : ''}
+                                    onchange="handleChange()"
+                                >
+                                <label for="${id}">${variant}</label>
+                            </div>
+                        `;
+                    });
+                }
                 
                 const unavailableBadge = !hasAvailable ? '<span class="unavailable-badge">Coming Soon</span>' : '';
                 card.innerHTML = `
@@ -435,19 +454,32 @@
             let overallTotal = 0;
             
             keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
-                    const available = isAvailable(keycard, variant);
+                if (keycard === 'OG-Ceycard') {
+                    // OG-Ceycard only has Base variant
+                    const id = `${keycard}-Base`;
                     const isChecked = localStorage.getItem(id) === 'true';
-                    
-                    if (available) {
-                        currentTotal++;
-                        if (isChecked) currentCollected++;
-                    }
-                    
+                    currentTotal++;
                     overallTotal++;
-                    if (isChecked) overallCollected++;
-                });
+                    if (isChecked) {
+                        currentCollected++;
+                        overallCollected++;
+                    }
+                } else {
+                    // Other keycards have all 4 variants
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        const available = isAvailable(keycard, variant);
+                        const isChecked = localStorage.getItem(id) === 'true';
+                        
+                        if (available) {
+                            currentTotal++;
+                            if (isChecked) currentCollected++;
+                        }
+                        
+                        overallTotal++;
+                        if (isChecked) overallCollected++;
+                    });
+                }
             });
             
             const currentPercent = currentTotal > 0 ? Math.round((currentCollected / currentTotal) * 100) : 0;
@@ -461,41 +493,67 @@
         
         function handleChange() {
             keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox && !checkbox.disabled) {
+                    if (checkbox) {
                         localStorage.setItem(id, checkbox.checked ? 'true' : 'false');
                     }
-                });
+                } else {
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        const checkbox = document.getElementById(id);
+                        if (checkbox && !checkbox.disabled) {
+                            localStorage.setItem(id, checkbox.checked ? 'true' : 'false');
+                        }
+                    });
+                }
             });
             updateStats();
         }
         
         function selectAll() {
             keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox && !checkbox.disabled) {
+                    if (checkbox) {
                         checkbox.checked = true;
                         localStorage.setItem(id, 'true');
                     }
-                });
+                } else {
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        const checkbox = document.getElementById(id);
+                        if (checkbox && !checkbox.disabled) {
+                            checkbox.checked = true;
+                            localStorage.setItem(id, 'true');
+                        }
+                    });
+                }
             });
             updateStats();
         }
         
         function deselectAll() {
             keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
                     const checkbox = document.getElementById(id);
-                    if (checkbox && !checkbox.disabled) {
+                    if (checkbox) {
                         checkbox.checked = false;
                         localStorage.setItem(id, 'false');
                     }
-                });
+                } else {
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        const checkbox = document.getElementById(id);
+                        if (checkbox && !checkbox.disabled) {
+                            checkbox.checked = false;
+                            localStorage.setItem(id, 'false');
+                        }
+                    });
+                }
             });
             updateStats();
         }
@@ -506,15 +564,21 @@
             message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
             
             keycards.forEach(keycard => {
-                const status = variants
-                    .map(v => {
-                        const id = `${keycard}-${v}`;
-                        const available = isAvailable(keycard, v);
-                        if (!available) return '🚫';
-                        return localStorage.getItem(id) === 'true' ? '✅' : '❌';
-                    })
-                    .join(' | ');
-                message += `${keycard}: ${status}\n`;
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
+                    const status = localStorage.getItem(id) === 'true' ? '✅' : '❌';
+                    message += `${keycard}: ${status}\n`;
+                } else {
+                    const status = variants
+                        .map(v => {
+                            const id = `${keycard}-${v}`;
+                            const available = isAvailable(keycard, v);
+                            if (!available) return '🚫';
+                            return localStorage.getItem(id) === 'true' ? '✅' : '❌';
+                        })
+                        .join(' | ');
+                    message += `${keycard}: ${status}\n`;
+                }
             });
             
             const currentCollected = document.getElementById('currentCollected').textContent;
@@ -556,10 +620,15 @@
         function exportData() {
             const data = {};
             keycards.forEach(keycard => {
-                variants.forEach(variant => {
-                    const id = `${keycard}-${variant}`;
+                if (keycard === 'OG-Ceycard') {
+                    const id = `${keycard}-Base`;
                     data[id] = localStorage.getItem(id) === 'true';
-                });
+                } else {
+                    variants.forEach(variant => {
+                        const id = `${keycard}-${variant}`;
+                        data[id] = localStorage.getItem(id) === 'true';
+                    });
+                }
             });
             
             const json = JSON.stringify(data, null, 2);
